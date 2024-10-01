@@ -4,7 +4,7 @@
 # License           : MIT license <Check LICENSE>
 # Author            : Anderson I. da Silva (aignacio) <anderson@aignacio.com>
 # Date              : 08.10.2023
-# Last Modified Date: 08.10.2023
+# Last Modified Date: 01.10.2024
 
 import os
 import glob
@@ -19,18 +19,22 @@ class cfg:
     RTL_DIR = os.path.join(TESTS_DIR, "dut")
     TOPLEVEL = str(os.getenv("DUT"))
     SIMULATOR = str(os.getenv("SIM"))
+    WAVES = int(os.getenv("WAVES"))
+
     VERILOG_SOURCES = []  # The sequence below matters...
     VERILOG_SOURCES += glob.glob(f'{RTL_DIR}**/*.v', recursive=True)
     EXTRA_ENV = {}
     EXTRA_ENV['COCOTB_HDL_TIMEPRECISION'] = os.getenv("TIMEPREC")
     EXTRA_ENV['COCOTB_HDL_TIMEUNIT'] = os.getenv("TIMEUNIT")
-    TIMESCALE = os.getenv("TIMEUNIT") + '/' + os.getenv("TIMEPREC")
+    TIMESCALE = (os.getenv("TIMEUNIT"), os.getenv("TIMEPREC"))
 
     if SIMULATOR == "verilator":
-        EXTRA_ARGS = ["--trace-fst", "--coverage", "--coverage-line",
-                      "--coverage-toggle", "--trace-structs",
-                      "--Wno-UNOPTFLAT", "--Wno-REDEFMACRO"]
+        EXTRA_ARGS = ["--trace-fst",
+                      "--coverage",
+                      "--coverage-line",
+                      "--coverage-toggle",
+                      "--trace-structs",
+                      "--Wno-UNOPTFLAT",
+                      "--Wno-REDEFMACRO"]
     elif SIMULATOR == "icarus":
-        EXTRA_ARGS = ["WAVES=1"]
-
         EXTRA_ARGS = []

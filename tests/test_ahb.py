@@ -4,18 +4,18 @@
 # License           : MIT license <Check LICENSE>
 # Author            : Anderson I. da Silva (aignacio) <anderson@aignacio.com>
 # Date              : 08.10.2023
-# Last Modified Date: 09.09.2024
+# Last Modified Date: 01.10.2024
 
 import cocotb
 import os
 import random
 
 from const import cfg
-from cocotb_test.simulator import run
 from cocotb.triggers import ClockCycles
 from cocotb.clock import Clock
 from cocotbext.ahb import AHBBus, AHBMaster, AHBSlave
 from cocotb.regression import TestFactory
+from cocotb.runner import get_runner
 
 
 def rnd_val(bit: int = 0, zero: bool = True):
@@ -55,13 +55,9 @@ async def run_test(dut, bp_fn=None, pip_mode=False):
 
     await setup_dut(dut, cfg.RST_CYCLES)
 
-    ahb_master = AHBMaster(
-        AHBBus.from_entity(dut), dut.hclk, dut.hresetn, def_val="Z"
-    )
+    ahb_master = AHBMaster(AHBBus.from_entity(dut), dut.hclk, dut.hresetn, def_val="Z")
 
-    ahb_slave = AHBSlave(
-        AHBBus.from_entity(dut), dut.hclk, dut.hresetn, bp=bp_fn
-    )
+    ahb_slave = AHBSlave(AHBBus.from_entity(dut), dut.hclk, dut.hresetn, bp=bp_fn)
 
     type(ahb_slave)
 
@@ -85,9 +81,7 @@ async def run_test(dut, bp_fn=None, pip_mode=False):
 
     txn_type = [pick_random_value([1, 0]) for _ in range(N)]
 
-    resp = await ahb_master.custom(
-        address, value, txn_type, size, pip_mode
-    )
+    resp = await ahb_master.custom(address, value, txn_type, size, pip_mode)
 
 
 if cocotb.SIM_NAME:
@@ -105,20 +99,49 @@ def test_ahb():
 
     Test ID: 2
     """
-    module = os.path.splitext(os.path.basename(__file__))[0]
-    SIM_BUILD = os.path.join(
-        cfg.TESTS_DIR, f"../run_dir/sim_build_{cfg.SIMULATOR}_{module}"
-    )
-    extra_args_sim = cfg.EXTRA_ARGS
+    #############################
+    # BEFORE USING COCOTB-TEST
+    #############################
 
-    run(
-        python_search=[cfg.TESTS_DIR],
+    # module = os.path.splitext(os.path.basename(__file__))[0]
+    # SIM_BUILD = os.path.join(
+    # cfg.TESTS_DIR, f"../run_dir/sim_build_{cfg.SIMULATOR}_{module}"
+    # )
+    # extra_args_sim = cfg.EXTRA_ARGS
+
+    # run(
+    # python_search=[cfg.TESTS_DIR],
+    # verilog_sources=cfg.VERILOG_SOURCES,
+    # toplevel=cfg.TOPLEVEL,
+    # module=module,
+    # sim_build=SIM_BUILD,
+    # extra_args=extra_args_sim,
+    # extra_env=cfg.EXTRA_ENV,
+    # timescale=cfg.TIMESCALE,
+    # waves=cfg.WAVES,
+    # )
+
+    #############################i
+    # WITH RUNNERS
+    #############################
+
+    test_name = os.path.splitext(os.path.basename(__file__))[0]
+
+    SIM_BUILD = os.path.join(cfg.TESTS_DIR, f"../run_dir/{test_name}_{cfg.SIMULATOR}")
+
+    runner = get_runner(cfg.SIMULATOR)
+    runner.build(
         verilog_sources=cfg.VERILOG_SOURCES,
-        toplevel=cfg.TOPLEVEL,
-        module=module,
-        sim_build=SIM_BUILD,
-        extra_args=extra_args_sim,
-        extra_env=cfg.EXTRA_ENV,
+        hdl_toplevel=cfg.TOPLEVEL,
+        build_args=cfg.EXTRA_ARGS,
         timescale=cfg.TIMESCALE,
-        waves=1,
+        waves=cfg.WAVES,
+        build_dir=SIM_BUILD,
+    )
+
+    runner.test(
+        hdl_toplevel=cfg.TOPLEVEL,
+        hdl_toplevel_lang="verilog",
+        test_module=test_name,
+        # extra_env=cfg.EXTRA_ENV,
     )
